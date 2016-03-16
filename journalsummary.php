@@ -8,7 +8,7 @@ require "ccsgpubs-library.php";
 $cutoff = 10;
 $cutoff = 9;
 $lowyear = 2000;
-$query = "select max(date_part('year',pubdate)) from finalpublications";
+$query = "select max(date_part('year',pubdate)) from ccsgpublications";
 $result = pg_exec($mydbh, $query);
 if (!$result) {printf (pg_ErrorMessage()); exit;}
 $maxrow = pg_fetch_array($result);
