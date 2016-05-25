@@ -96,6 +96,10 @@ else
 		{
 			$journal_issn = $pubxml->PubmedArticle->MedlineCitation->Article->Journal->ISSN;
 		}
+		if (strlen(trim($journal_issn))== 0)
+		{
+			$journal_issn = "-99";
+		}
 		$foundpubdate  = 0;
 		if (isset($pubxml->PubmedArticle->MedlineCitation->Article->Journal->JournalIssue->PubDate))
 		{
