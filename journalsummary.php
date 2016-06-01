@@ -9,8 +9,8 @@ $cutoff = 10;
 $cutoff = 9;
 $lowyear = 2000;
 $query = "select max(date_part('year',pubdate)) from ccsgpublications";
-$result = pg_exec($mydbh, $query);
-if (!$result) {printf (pg_ErrorMessage()); exit;}
+$result = pg_query_params($mydbh, $query,array());
+if (!$result) {printf (pg_last_error($mydbh)); exit;}
 $maxrow = pg_fetch_array($result);
 $hiyear = $maxrow[0]*1;
 ?>
@@ -45,18 +45,41 @@ while ($i <= $hiyear)
 	$totyr[$i] = 0;
 	$i++;
 }
+$iffield = "impact_factor_12";
+$iffield = "impact_factor_13_14";
+$iffield = "impact_factor_14";
+$whichif = 2014;
+if (isset($_GET["whichif"]))
+{
+	$whichif = $_GET["whichif"]*1;
+}
+if ($whichif == 0)
+{
+	$whichif = 2014;
+}
+$headif = "";
+if ($whichif == 2014)
+{
+	$headif = "[2104/15 IF]";
+	$iffield = "impact_factor_14";
+}
+if ($whichif == 2013)
+{
+	$headif = "[2103/14 IF]";
+	$iffield = "impact_factor_13_14";
+}
 
 
 
 
 
-$query = "select imp_factors.impact_factor_13_14, ccsgpublications.journal, ccsgpublications.journal_issn, ";
+$query = "select imp_factors.$iffield, ccsgpublications.journal, ccsgpublications.journal_issn, ";
 $query .= "date_part('year',ccsgpublications.pubdate) as pubyear,count(*) as pubcount ";
 $query .= "from ccsgpublications, imp_fac_link ";
 $query .= "left join imp_factors on (imp_fac_link.impact_factor_issn=imp_factors.issn) ";
 $query .= "where ccsgpublications.journal_issn = imp_fac_link.publication_issn ";
-$query .= "group by imp_factors.impact_factor_13_14,ccsgpublications.journal,ccsgpublications.journal_issn,date_part('year',ccsgpublications.pubdate) ";
-$query .= "order by imp_factors.impact_factor_13_14 desc NULLS LAST, ccsgpublications.journal ";
+$query .= "group by imp_factors.$iffield,ccsgpublications.journal,ccsgpublications.journal_issn,date_part('year',ccsgpublications.pubdate) ";
+$query .= "order by imp_factors.$iffield desc NULLS LAST, ccsgpublications.journal,date_part('year',ccsgpublications.pubdate) ";
 //$query = "select imp_factors.impact_factor_13_14, ccsgpublications.journal, ccsgpublications.journal_issn, date_part('year',ccsgpublications.pubdate) as pubyear,count(*) as pubcount ";
 //$query .= " from ccsgpublications left join imp_factors on (ccsgpublications.journal_issn=imp_factors.issn) ";
 //$query .= " group by imp_factors.impact_factor_13_14,ccsgpublications.journal,ccsgpublications.journal_issn,date_part('year',ccsgpublications.pubdate)  ";
@@ -64,12 +87,15 @@ $query .= "order by imp_factors.impact_factor_13_14 desc NULLS LAST, ccsgpublica
 
 //echo "query: $query<br />";
 
-$result = pg_exec($mydbh, $query);
-if (!$result) {printf (pg_ErrorMessage()); exit;}
+$result = pg_query_params($mydbh, $query,array());
+if (!$result) {printf (pg_last_error($mydbh)); exit;}
 while ($sumrow = pg_fetch_array($result))
 {
 	$thisjournal = $sumrow["journal"];
 	$issn = $sumrow["journal_issn"];
+//	echo "<br /><pre>";
+//	var_dump($sumrow);
+//	echo "<br /><pre>";
 	if ($thisjournal != $lagjournal)
 	{
 		if ($lagjournal != 'ZZZ')
@@ -86,13 +112,13 @@ while ($sumrow = pg_fetch_array($result))
 		$jcount = 0;
 		$doyears = 0;
 		$curyear = $lowyear;
-		if ($didheader == 0 && $sumrow["impact_factor_13_14"]*1 > $cutoff)
+		if ($didheader == 0 && $sumrow[$iffield]*1 > $cutoff)
 		{
 			echo '<tr><td bgcolor="#23659D" align="center" colspan="' . $numcols . '"><font color="white">High Impact Journals</font></td></tr>';
 			$didheader++;
 			$doyears = 1;
 		}
-		if ($didheader == 1 && $sumrow["impact_factor_13_14"] < $cutoff && $sumrow["impact_factor_13_14"] > 0)
+		if ($didheader == 1 && $sumrow[$iffield] < $cutoff && $sumrow[$iffield] > 0)
 		{
 			$subgtot = 0;
 			echo '<tr bgcolor="lightgray"><td>SUB-TOTAL</td>';
@@ -110,7 +136,7 @@ while ($sumrow = pg_fetch_array($result))
 			$didheader++;
 			$doyears = 1;
 		}
-		if ($didheader == 2 && $sumrow["impact_factor_13_14"] <= 0)
+		if ($didheader == 2 && $sumrow[$iffield] <= 0)
 		{
 			$subgtot = 0;
 			echo '<tr bgcolor="lightgray"><td>SUB-TOTAL</td>';
@@ -130,7 +156,7 @@ while ($sumrow = pg_fetch_array($result))
 		}
 		if ($doyears)
 		{
-			echo '<tr bgcolor="#23659D"><td><font color="white">Journal [2013/14 IF]{<i>ISSN</i>}</font></td>';
+			echo '<tr bgcolor="#23659D"><td><font color="white">Journal ' . $headif . '{<i>ISSN</i>}</font></td>';
 			$i = $lowyear;
 			while ($i <= $hiyear)
 			{
@@ -142,7 +168,7 @@ while ($sumrow = pg_fetch_array($result))
 			echo '</tr>';
 			echo "\n";
 		}
-		$impfact = $sumrow["impact_factor_13_14"]*1;
+		$impfact = $sumrow[$iffield]*1;
 		if ($impfact == 0)
 		{
 			$impfact = "Unknown";
@@ -218,7 +244,14 @@ $tmparr = explode("-",$tmpstr);
 $lastmod = $tmparr[1] . "/" . $tmparr[2] . "/" . $tmparr[0];
 echo '<br /><br />';
 echo "<i>The SKCC Publication database is usually updated weekly or bi-weekly, the last update was completed on $lastmod.</i><br />";
-echo '<i>Currently suing 2013/14 Journal Impact Factors from <a href="http://www.citefactor.org/journal-impact-factor-list-2014.html" target="_blank">citefactor.org</a></i>';
+if ($whichif == 2013)
+{
+	echo '<i>Currently using 2013/14 Journal Impact Factors from <a href="http://www.citefactor.org/journal-impact-factor-list-2014.html" target="_blank">citefactor.org</a></i>';
+}
+if ($whichif == 2014)
+{
+	echo '<i>Currently using 2014/15 Journal Impact Factors from <a href="https://jcr.incites.thomsonreuters.com/" target="_blank">ThomsonReuters.com</a></i>';
+}
 echo '<br /><br />Year of publication may be either the EPub Date or Print -- but each publication is only counted once<bt /><br />';
 echo 'Return To The <a href="pubmenu.php">Publication Report Menu</a><br/><br />';
 echo '</body></html>';
