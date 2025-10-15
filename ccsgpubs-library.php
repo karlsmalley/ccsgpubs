@@ -8,8 +8,8 @@ require_once($_SERVER["DOCUMENT_ROOT"] . "/includes/php/jeffldap.php");
 $url = 'https://isley.kcc.tju.edu/ccsgpubs';
 $dbhost = "xvm146.jefferson.edu";
 $dbname = "ccsgpubs";
-$dbuser = "karl";
-$dbpass = "ryan";
+$dbuser = USERNAME;
+$dbpass = PASSWORD;
 $mydbh = pg_connect("host=" . $dbhost . " dbname=" . $dbname . " user=" . $dbuser . " password=" . $dbpass); 
 
 $query = 'SELECT centername,centerabbrev  FROM systemconf where rowid = 1';
@@ -179,3 +179,4 @@ function userok($myuser)
 	}
 }
 ?>
+
